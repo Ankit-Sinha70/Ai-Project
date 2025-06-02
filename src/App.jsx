@@ -14,6 +14,7 @@ function App() {
   const [selectedHistory, setSelectedHistory] = useState("");
   const scrollToAnswer = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleAsk = async (isFromHistory = false) => {
     const query = isFromHistory ? selectedHistory : question;
@@ -21,21 +22,21 @@ function App() {
     if (!query.trim()) return;
 
     if (!isFromHistory && question) {
-      const newHistory = [question, ...recentHistory.filter(h => h !== question).slice(0, 30)]; // Keep latest 20, prevent duplicates
+      const newHistory = [question, ...recentHistory.filter(h => h !== question).slice(0, 30)]; // Keep latest 30, prevent duplicates
       localStorage.setItem("history", JSON.stringify(newHistory));
       setRecentHistory(newHistory);
     }
     
     const currentQuestionText = query;
     const questionEntry = { type: "q", text: currentQuestionText };
-    // Add Question immediately
+    
     setAnswer(prev => [...prev, questionEntry]);
     if (!isFromHistory) {
       setQuestion(""); // Clear input only for new questions
     }
     setIsLoading(true);
     
-    setTimeout(() => {
+    setTimeout(() => { 
         if (scrollToAnswer.current) {
             scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
         }
@@ -49,9 +50,6 @@ function App() {
     try {
       const response = await fetch(`${URL}${API_KEY}`, {
         method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
@@ -59,9 +57,6 @@ function App() {
       dataString = dataString.split("* ").map((item) => item.trim()).filter(item => item);
 
 
-      // Add Answer by finding the last question and updating the answer list
-      // This might be complex if history items are re-asked.
-      // The current structure from your code is to append Q, then append A.
       setAnswer(prev => [...prev, { type: "a", text: dataString }]);
 
     } catch (error) {
@@ -73,7 +68,6 @@ function App() {
       setAnswer(prev => [...prev, errorEntry]);
     } finally {
       setIsLoading(false);
-      // Scroll after answer is loaded and DOM updated
       setTimeout(() => {
         if (scrollToAnswer.current) {
           scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
@@ -93,31 +87,45 @@ function App() {
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   useEffect(() => {
     if (selectedHistory) {
-      // When a history item is clicked, we want to ask it again.
-      // We should clear the current input field.
-      setQuestion(""); // Clear manual input
-      handleAsk(true); // Pass a flag to indicate it's from history
-      setSelectedHistory(""); // Reset after processing to allow re-clicks
+      setQuestion(""); 
+      handleAsk(true); 
+      setSelectedHistory(""); 
     }
-  }, [selectedHistory]); // Dependency on selectedHistory
+  }, [selectedHistory]); 
   
-  // Effect for initial load (optional, if you want to load last chat or something)
   // useEffect(() => {
-  //   // Potentially load answers if they were persisted
   // }, []);
 
 
   return (
     <>
-      <div className="grid md:grid-cols-5 h-screen text-white"> {/* Removed text-center */}
+      <div className="grid md:grid-cols-5 h-screen text-white relative"> {/* Added relative for positioning context */}
         <Sidebar
           recentHistory={recentHistory}
           setSelectedHistory={setSelectedHistory}
           handleDeleteHistory={handleDeleteHistory}
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={toggleSidebar}
         />
-        <div className="md:col-span-4 p-4 md:p-6 flex flex-col h-screen"> {/* Adjusted padding, h-screen for full height column */}
+        <div className="md:col-span-4 p-4 md:p-6 flex flex-col h-screen relative"> {/* Main content area, added relative for hamburger */}
+          {/* Hamburger Menu Button - visible only on small screens (md:hidden) */}
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white absolute top-4 left-4 z-20"
+            aria-label="Open sidebar"
+          >
+            <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          {/* ChatArea and ChatInput */}
           <ChatArea
             answer={answer}
             isLoading={isLoading}
@@ -131,6 +139,14 @@ function App() {
           />
         </div>
       </div>
+      {/* Overlay for mobile when sidebar is open, closes sidebar on click */}
+      {isSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black opacity-50 z-30"
+          onClick={toggleSidebar}
+          aria-hidden="true" 
+        ></div>
+      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 function ChatInput({ question, setQuestion, handleAsk, isLoading }) {
   return (
@@ -9,18 +9,18 @@ function ChatInput({ question, setQuestion, handleAsk, isLoading }) {
         placeholder="Ask me anything"
         value={question}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !isLoading) { 
+          if (e.key === "Enter" && !isLoading) {
             handleAsk();
           }
         }}
         onChange={(e) => setQuestion(e.target.value)}
-        disabled={isLoading} 
+        disabled={isLoading}
       />
-      <button onClick={() => !isLoading && handleAsk()} disabled={isLoading}> 
-        {isLoading ? 'Thinking...' : 'Ask'}
+      <button onClick={() => !isLoading && handleAsk()} disabled={isLoading}>
+        {isLoading ? "Thinking..." : "Ask"}
       </button>
     </div>
   );
 }
 
-export default ChatInput; 
+export default ChatInput;

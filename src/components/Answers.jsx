@@ -11,10 +11,10 @@ const Answers = ({ answer }) => {
     }
   }, []);
 
-//   function checkHeading(dataString) {
-//     const regex = /^(\*)(\*)(.*)\*$/;
-//     return regex.test(dataString);
-//   }
+  //   function checkHeading(dataString) {
+  //     const regex = /^(\*)(\*)(.*)\*$/;
+  //     return regex.test(dataString);
+  //   }
 
   return (
     <div>
