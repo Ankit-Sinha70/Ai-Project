@@ -1,154 +1,134 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { URL, API_KEY } from "./constant";
-import { IoTrashBinSharp } from "react-icons/io5";
-import Answers from "./components/Answers";
+import Sidebar from "./components/Sidebar";
+import ChatArea from "./components/ChatArea";
+import ChatInput from "./components/ChatInput";
+
 function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState([]);
   const [recentHistory, setRecentHistory] = useState(
-    JSON.parse(localStorage.getItem("history")) || []);
+    JSON.parse(localStorage.getItem("history")) || []
+  );
+  const [selectedHistory, setSelectedHistory] = useState("");
+  const scrollToAnswer = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAsk = async () => {
-    if(!question) {
-      return false;
+  const handleAsk = async (isFromHistory = false) => {
+    const query = isFromHistory ? selectedHistory : question;
+
+    if (!query.trim()) return;
+
+    if (!isFromHistory && question) {
+      const newHistory = [question, ...recentHistory.filter(h => h !== question).slice(0, 30)]; // Keep latest 20, prevent duplicates
+      localStorage.setItem("history", JSON.stringify(newHistory));
+      setRecentHistory(newHistory);
     }
-    if (localStorage.getItem("history")) {
-      let history = JSON.parse(localStorage.getItem("history"));
-      history = [question, ...history ];
-      localStorage.setItem("history", JSON.stringify(history));
-      setRecentHistory(history);
-    } else {
-      localStorage.setItem("history", JSON.stringify([question]));
-      setRecentHistory([question]);
-    }
-
-    if (!question.trim()) return;
-    const currentQuestionText = question;
-
+    
+    const currentQuestionText = query;
     const questionEntry = { type: "q", text: currentQuestionText };
-    setAnswer((prevAnswers) => [questionEntry, ...prevAnswers]);
-    setQuestion("");
+    // Add Question immediately
+    setAnswer(prev => [...prev, questionEntry]);
+    if (!isFromHistory) {
+      setQuestion(""); // Clear input only for new questions
+    }
+    setIsLoading(true);
+    
+    setTimeout(() => {
+        if (scrollToAnswer.current) {
+            scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
+        }
+    }, 0);
+
 
     const payload = {
-      contents: [
-        {
-          parts: [{ text: currentQuestionText }],
-        },
-      ],
+      contents: [ { parts: [{ text: currentQuestionText }] } ],
     };
+
     try {
       const response = await fetch(`${URL}${API_KEY}`, {
         method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
       let dataString = data.candidates[0].content.parts[0].text;
-      dataString = dataString.split("* ");
-      dataString = dataString.map((item) => item.trim());
+      dataString = dataString.split("* ").map((item) => item.trim()).filter(item => item);
 
-      const answerEntry = { type: "a", text: dataString };
 
-      setAnswer((prevAnswers) => {
-        return [prevAnswers[0], answerEntry, ...prevAnswers.slice(1)];
-      });
+      // Add Answer by finding the last question and updating the answer list
+      // This might be complex if history items are re-asked.
+      // The current structure from your code is to append Q, then append A.
+      setAnswer(prev => [...prev, { type: "a", text: dataString }]);
+
     } catch (error) {
       console.error("Error fetching answer:", error);
       const errorEntry = {
         type: "a",
         text: "Sorry, I couldn't get an answer. Please try again.",
       };
-      setAnswer((prevAnswers) => {
-        return [prevAnswers[0], errorEntry, ...prevAnswers.slice(1)];
-      });
+      setAnswer(prev => [...prev, errorEntry]);
+    } finally {
+      setIsLoading(false);
+      // Scroll after answer is loaded and DOM updated
+      setTimeout(() => {
+        if (scrollToAnswer.current) {
+          scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
+        }
+      }, 0);
     }
   };
-  console.log(answer);
 
   const handleDeleteHistory = (itemToDelete) => {
-    const updatedHistory = recentHistory.filter(item => item !== itemToDelete);
+    const updatedHistory = recentHistory.filter(
+      (item) => item !== itemToDelete
+    );
     localStorage.setItem("history", JSON.stringify(updatedHistory));
     setRecentHistory(updatedHistory);
+    if (selectedHistory === itemToDelete) {
+        setSelectedHistory(""); // Clear selection if deleted
+    }
   };
+
+  useEffect(() => {
+    if (selectedHistory) {
+      // When a history item is clicked, we want to ask it again.
+      // We should clear the current input field.
+      setQuestion(""); // Clear manual input
+      handleAsk(true); // Pass a flag to indicate it's from history
+      setSelectedHistory(""); // Reset after processing to allow re-clicks
+    }
+  }, [selectedHistory]); // Dependency on selectedHistory
+  
+  // Effect for initial load (optional, if you want to load last chat or something)
+  // useEffect(() => {
+  //   // Potentially load answers if they were persisted
+  // }, []);
+
 
   return (
     <>
-      <div className="grid md:grid-cols-5 h-screen text-white text-center">
-        <div className="md:col-span-1 bg-zinc-800 md:h-screen overflow-y-auto hide-scrollbar">
-          <div className="text-sm font-bold text-left p-4 flex flex-col md:max-w-xs h-full">
-            <h1 className="text-lg font-bold text-white mb-4 text-center sticky top-0 bg-zinc-800 py-2">
-              Recent History
-            </h1>
-            {recentHistory?.map((item, index) => {
-              const displayText =
-                item.length > 10 ? item.slice(0, 30) + "..." : item;
-              return (
-                <div
-                  key={index}
-                  className="flex justify-between items-center w-full mb-1"
-                >
-                  <li
-                    className="text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md p-2 cursor-pointer truncate max-w-[calc(100%-2rem)] list-none"
-                    title={item}
-                  >
-                    {displayText}
-                  </li>
-                  <button onClick={() => handleDeleteHistory(item)} className="text-zinc-400 hover:text-red-500">
-                    <IoTrashBinSharp />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="md:col-span-4 p-4 md:p-10 flex flex-col h-full">
-          <div className="container flex-grow overflow-y-auto border border-zinc-700 rounded-2xl p-4 mb-4 md:mb-10 bg-zinc-800 hide-scrollbar">
-            <div className="text-zinc-300">
-              {answer &&
-                answer.map((item, index) => (
-                  <div
-                    key={index}
-                    className={`flex mb-2 ${
-                      item.type === "q" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    {item.type === "q" ? (
-                      <div className="bg-zinc-700 text-white p-3 rounded-tl-3xl rounded-br-3xl rounded-bl-3xl max-w-xs sm:max-w-md text-right shadow-md">
-                        {item.text}
-                      </div>
-                    ) : (
-                      <div className="text-white p-3 rounded-xl text-left shadow-md max-w-xs sm:max-w-md">
-                        {Array.isArray(item.text) ? (
-                          item.text.map((line, i) => (
-                            <p key={i} className="break-words">
-                              {line}
-                            </p>
-                          ))
-                        ) : (
-                          <p className="break-words">{item.text}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-          </div>
-          <div className="bg-zinc-800 w-full md:w-3/4 lg:w-1/2 text-white m-auto p-1 pr-5 rounded-4xl border border-zinc-700 flex mt-auto">
-            <input
-              type="text"
-              className="w-full h-full p-3 outline-none bg-transparent"
-              placeholder="Ask me anything"
-              value={question}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleAsk();
-                }
-              }}
-              onChange={(e) => setQuestion(e.target.value)}
-            />
-            <button onClick={() => handleAsk()}>Ask</button>
-          </div>
+      <div className="grid md:grid-cols-5 h-screen text-white"> {/* Removed text-center */}
+        <Sidebar
+          recentHistory={recentHistory}
+          setSelectedHistory={setSelectedHistory}
+          handleDeleteHistory={handleDeleteHistory}
+        />
+        <div className="md:col-span-4 p-4 md:p-6 flex flex-col h-screen"> {/* Adjusted padding, h-screen for full height column */}
+          <ChatArea
+            answer={answer}
+            isLoading={isLoading}
+            scrollToAnswer={scrollToAnswer}
+          />
+          <ChatInput
+            question={question}
+            setQuestion={setQuestion}
+            handleAsk={() => handleAsk(false)} // Pass false for new questions
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </>
