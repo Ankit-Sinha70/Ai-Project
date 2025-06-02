@@ -7,12 +7,15 @@ function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState([]);
   const [recentHistory, setRecentHistory] = useState(
-    JSON.parse(localStorage.getItem("history")));
+    JSON.parse(localStorage.getItem("history")) || []);
 
   const handleAsk = async () => {
+    if(!question) {
+      return false;
+    }
     if (localStorage.getItem("history")) {
       let history = JSON.parse(localStorage.getItem("history"));
-      history = [...history, question];
+      history = [question, ...history ];
       localStorage.setItem("history", JSON.stringify(history));
       setRecentHistory(history);
     } else {
@@ -21,17 +24,16 @@ function App() {
     }
 
     if (!question.trim()) return;
-    const currentQuestion = question;
-    setAnswer((prevAnswers) => [
-      ...prevAnswers,
-      { type: "q", text: currentQuestion },
-    ]);
+    const currentQuestionText = question;
+
+    const questionEntry = { type: "q", text: currentQuestionText };
+    setAnswer((prevAnswers) => [questionEntry, ...prevAnswers]);
     setQuestion("");
 
     const payload = {
       contents: [
         {
-          parts: [{ text: currentQuestion }],
+          parts: [{ text: currentQuestionText }],
         },
       ],
     };
@@ -45,28 +47,28 @@ function App() {
       dataString = dataString.split("* ");
       dataString = dataString.map((item) => item.trim());
 
-      // Display the answer after fetching and processing
-      setAnswer((prevAnswers) => [
-        ...prevAnswers,
-        { type: "a", text: dataString },
-      ]);
+      const answerEntry = { type: "a", text: dataString };
+
+      setAnswer((prevAnswers) => {
+        return [prevAnswers[0], answerEntry, ...prevAnswers.slice(1)];
+      });
     } catch (error) {
       console.error("Error fetching answer:", error);
-      // Optionally, display an error message in the chat
-      setAnswer((prevAnswers) => [
-        ...prevAnswers,
-        {
-          type: "a",
-          text: "Sorry, I couldn't get an answer. Please try again.",
-        },
-      ]);
+      const errorEntry = {
+        type: "a",
+        text: "Sorry, I couldn't get an answer. Please try again.",
+      };
+      setAnswer((prevAnswers) => {
+        return [prevAnswers[0], errorEntry, ...prevAnswers.slice(1)];
+      });
     }
   };
   console.log(answer);
 
-  const handleDeleteHistory = () => {
-    localStorage.removeItem("history");
-    setRecentHistory([]);
+  const handleDeleteHistory = (itemToDelete) => {
+    const updatedHistory = recentHistory.filter(item => item !== itemToDelete);
+    localStorage.setItem("history", JSON.stringify(updatedHistory));
+    setRecentHistory(updatedHistory);
   };
 
   return (
@@ -102,7 +104,7 @@ function App() {
 
         <div className="md:col-span-4 p-4 md:p-10 flex flex-col h-full">
           <div className="container flex-grow overflow-y-auto border border-zinc-700 rounded-2xl p-4 mb-4 md:mb-10 bg-zinc-800 hide-scrollbar">
-            <div className="text-zinc-300 flex flex-col-reverse">
+            <div className="text-zinc-300">
               {answer &&
                 answer.map((item, index) => (
                   <div
@@ -138,6 +140,11 @@ function App() {
               className="w-full h-full p-3 outline-none bg-transparent"
               placeholder="Ask me anything"
               value={question}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAsk();
+                }
+              }}
               onChange={(e) => setQuestion(e.target.value)}
             />
             <button onClick={() => handleAsk()}>Ask</button>
