@@ -1,5 +1,5 @@
-const URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
-const API_KEY = "AIzaSyBHmDQ8EBJ9HlwRSK8jeRb5_jiFw2KkWPU";
+const URL = import.meta.env.VITE_APP_GEMINI_API_URL;
+const API_KEY = import.meta.env.VITE_APP_GEMINI_API_KEY;
 
 
 export { URL, API_KEY };
