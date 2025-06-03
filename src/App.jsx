@@ -142,7 +142,7 @@ function App() {
       {/* Overlay for mobile when sidebar is open, closes sidebar on click */}
       {isSidebarOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black opacity-50 z-30"
+          className="md:hidden fixed inset-0 bg-white opacity-50 z-30"
           onClick={toggleSidebar}
           aria-hidden="true" 
         ></div>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { IoTrashBinSharp } from "react-icons/io5";
+import ProfileSection from "./ProfileSection";
 
 const Sidebar = ({
   recentHistory,
@@ -110,6 +111,11 @@ const Sidebar = ({
             </li>
           ))}
         </ul>
+
+        {/* Profile/Login Section Wrapper */}
+        <div className="mt-auto pt-2">
+          <ProfileSection />
+        </div>
       </div>
 
       {/* Confirmation Dialog */}
