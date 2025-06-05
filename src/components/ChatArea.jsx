@@ -4,11 +4,11 @@ function ChatArea({ answer, isLoading, scrollToAnswer }) {
   if (isLoading && answer.length === 0) {
     // Show full page loader only if no answers yet
     return (
-      <div className="flex-grow flex items-center justify-center">
+      <div className="flex-grow flex items-center justify-center bg-white dark:bg-gray-900">
         <div role="status">
           <svg
             aria-hidden="true"
-            className="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-purple-600"
+            className="w-12 h-12 text-gray-400 animate-spin dark:text-gray-500 fill-purple-600"
             viewBox="0 0 100 101"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -31,17 +31,17 @@ function ChatArea({ answer, isLoading, scrollToAnswer }) {
   return (
     <div
       ref={scrollToAnswer}
-      className="container h-[calc(100vh-12rem)] md:h-[calc(100vh-10rem)] overflow-y-auto border border-zinc-700 rounded-2xl p-4 mb-4 md:mb-10 bg-zinc-800 hide-scrollbar"
+      className="container h-[calc(100vh-12rem)] md:h-[calc(100vh-10rem)] overflow-y-auto border border-zinc-300 dark:border-zinc-700 rounded-2xl p-4 mb-4 md:mb-10 bg-white dark:bg-zinc-800 hide-scrollbar"
     >
       {answer.length === 0 && !isLoading && (
         <div className="flex flex-col items-center justify-center h-full">
           <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
             Hello There!
           </h1>
-          <p className="text-zinc-400 mt-2">How can I help you today?</p>
+          <p className="text-zinc-600 dark:text-zinc-400 mt-2">How can I help you today?</p>
         </div>
       )}
-      <div className="text-zinc-300">
+      <div className="text-zinc-800 dark:text-zinc-300">
         {answer &&
           answer.map((item, index) => (
             <div
@@ -51,11 +51,11 @@ function ChatArea({ answer, isLoading, scrollToAnswer }) {
               }`}
             >
               {item.type === "q" ? (
-                <div className="bg-zinc-700 text-zinc-300 p-3 rounded-tl-3xl rounded-br-3xl rounded-bl-3xl max-w-xs sm:max-w-md text-right shadow-md">
+                <div className="bg-purple-100 dark:bg-purple-800 text-purple-900 dark:text-purple-100 p-3 rounded-tl-3xl rounded-br-3xl rounded-bl-3xl max-w-xs sm:max-w-md text-right shadow-md">
                   {item.text}
                 </div>
               ) : (
-                <div className="bg-zinc-700 text-zinc-300 p-3 rounded-xl text-left shadow-md max-w-full sm:max-w-full">
+                <div className="bg-gray-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 p-3 rounded-xl text-left shadow-md max-w-full sm:max-w-full">
                   {isLoading &&
                   index === answer.length - 1 &&
                   item.type === "a" ? ( // Show loader for last answer item if loading
@@ -65,7 +65,7 @@ function ChatArea({ answer, isLoading, scrollToAnswer }) {
                     >
                       <svg
                         aria-hidden="true"
-                        className="w-6 h-6 text-gray-200 animate-spin dark:text-gray-600 fill-purple-600"
+                        className="w-6 h-6 text-gray-400 animate-spin dark:text-gray-500 fill-purple-600"
                         viewBox="0 0 100 101"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"

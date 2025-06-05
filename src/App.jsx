@@ -22,29 +22,25 @@ function App() {
     if (!query.trim()) return;
 
     if (!isFromHistory && question) {
-      const newHistory = [question, ...recentHistory.filter(h => h !== question).slice(0, 30)]; // Keep latest 30, prevent duplicates
+      const newHistory = [
+        question,
+        ...recentHistory.filter((h) => h !== question).slice(0, 30),
+      ]; // Keep latest 30, prevent duplicates
       localStorage.setItem("history", JSON.stringify(newHistory));
       setRecentHistory(newHistory);
     }
-    
+
     const currentQuestionText = query;
     const questionEntry = { type: "q", text: currentQuestionText };
-    
-    setAnswer(prev => [...prev, questionEntry]);
+
+    setAnswer((prev) => [...prev, questionEntry]);
     if (!isFromHistory) {
       setQuestion(""); // Clear input only for new questions
     }
     setIsLoading(true);
-    
-    setTimeout(() => { 
-        if (scrollToAnswer.current) {
-            scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
-        }
-    }, 0);
-
 
     const payload = {
-      contents: [ { parts: [{ text: currentQuestionText }] } ],
+      contents: [{ parts: [{ text: currentQuestionText }] }],
     };
 
     try {
@@ -54,25 +50,21 @@ function App() {
       });
       const data = await response.json();
       let dataString = data.candidates[0].content.parts[0].text;
-      dataString = dataString.split("* ").map((item) => item.trim()).filter(item => item);
+      dataString = dataString
+        .split("* ")
+        .map((item) => item.trim())
+        .filter((item) => item);
 
-
-      setAnswer(prev => [...prev, { type: "a", text: dataString }]);
-
+      setAnswer((prev) => [...prev, { type: "a", text: dataString }]);
     } catch (error) {
       console.error("Error fetching answer:", error);
       const errorEntry = {
         type: "a",
         text: "Sorry, I couldn't get an answer. Please try again.",
       };
-      setAnswer(prev => [...prev, errorEntry]);
+      setAnswer((prev) => [...prev, errorEntry]);
     } finally {
       setIsLoading(false);
-      setTimeout(() => {
-        if (scrollToAnswer.current) {
-          scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
-        }
-      }, 0);
     }
   };
 
@@ -83,7 +75,7 @@ function App() {
     localStorage.setItem("history", JSON.stringify(updatedHistory));
     setRecentHistory(updatedHistory);
     if (selectedHistory === itemToDelete) {
-        setSelectedHistory(""); // Clear selection if deleted
+      setSelectedHistory(""); // Clear selection if deleted
     }
   };
 
@@ -93,19 +85,30 @@ function App() {
 
   useEffect(() => {
     if (selectedHistory) {
-      setQuestion(""); 
-      handleAsk(true); 
-      setSelectedHistory(""); 
+      setQuestion("");
+      handleAsk(true);
+      setSelectedHistory("");
     }
-  }, [selectedHistory]); 
-  
-  // useEffect(() => {
-  // }, []);
+  }, [selectedHistory]);
 
+  useEffect(() => {
+    if (scrollToAnswer.current) {
+      // Scroll to bottom after 'answer' state updates and DOM re-renders.
+      // Using a timeout to ensure scrollHeight is updated after DOM paint.
+      const timerId = setTimeout(() => {
+        if (scrollToAnswer.current) { // Double check ref in case component unmounted
+          scrollToAnswer.current.scrollTop = scrollToAnswer.current.scrollHeight;
+        }
+      }, 0);
+      return () => clearTimeout(timerId); // Cleanup timeout
+    }
+  }, [answer]); // Dependency: scroll when 'answer' (chat messages) changes
 
   return (
-    <>
-      <div className="grid md:grid-cols-5 h-screen text-white relative"> {/* Added relative for positioning context */}
+    <div>
+      <div className="grid md:grid-cols-5 h-screen text-white relative">
+        {" "}
+        {/* Added relative for positioning context */}
         <Sidebar
           recentHistory={recentHistory}
           setSelectedHistory={setSelectedHistory}
@@ -113,18 +116,29 @@ function App() {
           isSidebarOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}
         />
-        <div className="md:col-span-4 p-4 md:p-6 flex flex-col h-screen relative"> {/* Main content area, added relative for hamburger */}
+        <div className="md:col-span-4 p-4 md:p-6 flex flex-col h-screen relative">
+          {" "}
+          {/* Main content area, added relative for hamburger */}
           {/* Hamburger Menu Button - visible only on small screens (md:hidden) */}
           <button
             onClick={toggleSidebar}
             className="md:hidden p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white absolute top-4 left-4 z-20"
             aria-label="Open sidebar"
           >
-            <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              className="h-6 w-6"
+              stroke="currentColor"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
-
           {/* ChatArea and ChatInput */}
           <ChatArea
             answer={answer}
@@ -142,12 +156,12 @@ function App() {
       {/* Overlay for mobile when sidebar is open, closes sidebar on click */}
       {isSidebarOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-white opacity-50 z-30"
+          className="md:hidden fixed inset-0 bg-gray-700 opacity-50 z-30"
           onClick={toggleSidebar}
-          aria-hidden="true" 
+          aria-hidden="true"
         ></div>
       )}
-    </>
+    </div>
   );
 }
 
