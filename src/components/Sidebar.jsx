@@ -11,26 +11,30 @@ const Sidebar = ({
 }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedMode = localStorage.getItem('theme');
-      return savedMode || 'dark';
+    if (typeof window !== "undefined") {
+      const savedMode = localStorage.getItem("theme");
+      return savedMode || "dark";
     }
-    return 'dark';
+    return "dark";
   });
 
   useEffect(() => {
     console.log("Current mode:", darkMode);
-    if (darkMode === 'dark') {
-      document.documentElement.classList.add('dark');
+    if (darkMode === "dark") {
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', darkMode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("theme", darkMode);
     }
   }, [darkMode]);
 
+  const filteredHistory = recentHistory.filter((item) =>
+    item.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDeleteClick = (item) => {
     setItemToDelete(item);
@@ -56,12 +60,11 @@ const Sidebar = ({
         className={`
           fixed inset-y-0 left-0 z-40 w-3/4 sm:w-1/2 md:w-auto
           md:static md:col-span-1
-          h-full p-4 bg-white dark:bg-gray-800 
+          h-screen bg-white dark:bg-gray-800 
           text-gray-900 dark:text-white flex flex-col 
           transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
-          overflow-hidden 
         `}
       >
         <button
@@ -85,57 +88,78 @@ const Sidebar = ({
           </svg>
         </button>
 
-        <h2 className="text-xl font-semibold mb-4 mt-10 md:mt-0">Recent</h2>
-        {recentHistory.length === 0 && (
-          <p className="text-gray-500 dark:text-gray-400">No recent history.</p>
-        )}
-        <ul className="space-y-2 flex-1 overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
-          {recentHistory.map((item, index) => (
-            <li
-              key={index}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer flex justify-between items-center group"
-              onClick={() => {
-                setSelectedHistory(item);
-                if (window.innerWidth < 768) {
-                  // 768px is typical 'md' breakpoint
-                  toggleSidebar();
-                }
-              }}
-            >
-              <span className="truncate pr-2 flex-1">{item}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(item);
-                }}
-                className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label={`Delete history item: ${item}`}
-              >
-                <IoTrashBinSharp className="w-4 h-4" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col h-full p-4">
+          <div className="flex-none">
+            <h2 className="text-xl font-semibold mb-4 mt-10 md:mt-0">Recent</h2>
 
-        {/* Profile/Login Section and Theme Selector Wrapper */}
-        <div className="mt-auto pt-4 border-t border-gray-300 dark:border-gray-700">
-          <ProfileSection />
-          <div className="mt-2">
-            <select
-              name="theme"
-              id="theme-select"
-              className="w-full bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              value={darkMode}
-              onChange={(e) => setDarkMode(e.target.value)}
-            >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search history..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 
+                         text-gray-900 dark:text-white rounded-md
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500
+                         placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {filteredHistory.length === 0 && (
+              <p className="text-gray-500 dark:text-gray-400">
+                {searchQuery
+                  ? "No matching history found."
+                  : "No recent history."}
+              </p>
+            )}
+            <ul className="space-y-2">
+              {filteredHistory.map((item, index) => (
+                <li
+                  key={index}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer flex justify-between items-center group"
+                  onClick={() => {
+                    setSelectedHistory(item);
+                    if (window.innerWidth < 768) {
+                      toggleSidebar();
+                    }
+                  }}
+                >
+                  <span className="truncate pr-2 flex-1">{item}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(item);
+                    }}
+                    className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Delete history item: ${item}`}
+                  >
+                    <IoTrashBinSharp className="w-4 h-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex-none mt-4 pt-4 border-t border-gray-300 dark:border-gray-700">
+            <ProfileSection />
+            <div className="mt-2">
+              <select
+                name="theme"
+                id="theme-select"
+                className="w-full bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={darkMode}
+                onChange={(e) => setDarkMode(e.target.value)}
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-xl text-gray-900 dark:text-white max-w-sm w-full">
